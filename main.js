@@ -24,9 +24,12 @@ app.use((req, res, next) => {
     if (req.cookies.user_sid && !req.session.user) {
         res.clearCookie('user_sid');
     }
+    console.log(req.session.user, "session data");
+    console.log(req.cookies.user_sid, "cookies data ")
     next();
 });
 
+app.use('/', express.static('public'))
 
 // middleware function to check for logged-in users
 var auth = (req, res, next) => {
@@ -38,12 +41,6 @@ var auth = (req, res, next) => {
     }
 };
 
-// route for Home-Page
-app.get('/', (req, res) => {
-    var indexPg = path.join(__dirname, "/public/index.html");
-    res.sendFile(indexPg);
-
-});
 //check only login vie api request if needed
 app.get('/checklogin', auth, (req, res) => {
     res.setHeader('Content-Type', 'application/json');
