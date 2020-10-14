@@ -5,7 +5,7 @@ var bodyParser = require('body-parser');
 const path = require('path');
 var app = express();
 
-app.set('port', port = process.env.PORT || 80);
+app.set('port', port = process.env.PORT || 8080);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
