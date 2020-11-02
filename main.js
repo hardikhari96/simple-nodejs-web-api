@@ -4,6 +4,11 @@ var session = require('express-session');
 var bodyParser = require('body-parser');
 const path = require('path');
 var app = express();
+// For image upload
+var multer = require('multer');
+
+var fs = require("fs");
+
 
 app.set('port', port = process.env.PORT || 8080);
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -19,13 +24,22 @@ app.use(session({
     }
 }));
 
-
+app.use(function(req, res, next) {
+  //Enabling CORS
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, contentType,Content-Type, Accept, Authorization"
+  );
+  next();
+});
 app.use((req, res, next) => {
     if (req.cookies.user_sid && !req.session.user) {
         res.clearCookie('user_sid');
     }
-    console.log(req.session.user, "session data");
-    console.log(req.cookies.user_sid, "cookies data ")
+    //console.log(req.session.user, "session data");
+    //console.log(req.cookies.user_sid, "cookies data ")
     next();
 });
 
@@ -63,6 +77,36 @@ app.get('/logouthere', (req, res) => {
         res.end(JSON.stringify({ 'loggedin': true, 'message': 'Loggedout error' }));
     }
 });
+
+
+// for image upload
+
+var upload = multer({ dest: '/tmp/' });
+
+app.post('/uploadfilehere', [auth,upload.single('file')], function(req, res) {
+    
+	var newdir = 'uploads/'+req.body.folder;
+	var file = newdir +'/' + req.file.filename + path.extname(req.file.originalname);
+	if (!fs.existsSync(newdir)){
+		fs.mkdirSync(newdir);
+	}
+    console.log(req.file);
+    console.log(file);
+    fs.rename(req.file.path, file, function(err) {
+        if (err) {
+            console.log(err);
+            res.send(500);
+        } else {
+            res.json({
+                message: 'File uploaded successfully',
+                filename: 'http://localhost:8080/'+file
+            });
+        }
+    });
+});
+
+app.use('/uploads',auth,express.static('uploads'));
+
 
 app.use(function(req, res, next) {
     res.status(404).end(JSON.stringify({ 'success': false, 'loggedin': false, 'error': 404 }));
