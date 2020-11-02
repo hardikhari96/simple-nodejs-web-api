@@ -58,13 +58,13 @@ var auth = (req, res, next) => {
 //check only login vie api request if needed
 app.get('/checklogin', auth, (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ 'loggedin': true, 'message': 'You Are logged in' }));
+    res.end(JSON.stringify({ 'loggedin': true, 'message': 'You Are logged in','user':req.session.user }));
 });
 
 app.get('/loginhere', (req, res) => {
-    req.session.user = 12314787121;
+    req.session.user = 'hari';
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ 'loggedin': true, 'message': 'You logged in' }));
+    res.end(JSON.stringify({ 'loggedin': true, 'message': 'You logged in','user':req.session.user}));
 });
 
 
@@ -82,27 +82,101 @@ app.get('/logouthere', (req, res) => {
 // for image upload
 
 var upload = multer({ dest: '/tmp/' });
+var multerMiddleware = upload.fields([{ name: 'file', maxCount: 1 }, { name: 'test', maxCount: 1 },{ name: 'other', maxCount: 1 }]);
 
-app.post('/uploadfilehere', [auth,upload.single('file')], function(req, res) {
-    
-	var newdir = 'uploads/'+req.body.folder;
-	var file = newdir +'/' + req.file.filename + path.extname(req.file.originalname);
-	if (!fs.existsSync(newdir)){
-		fs.mkdirSync(newdir);
+function uploadfile(files,name,dest,callback){
+	
+	if(Object.keys(files).indexOf(name) >= 0){
+		// console.log(Object.keys(files));
+		// console.log(Object.keys(files).indexOf(name));
+		// console.log(Object.keys(files).indexOf(name) >= 0);
+		if (!fs.existsSync(dest)){
+				fs.mkdirSync(dest);
+			}
+			var to = dest +'/' + files[name][0].filename + path.extname(files[name][0].originalname);
+			
+			try {
+				 fs.rename(files[name][0].path,to, function(err,example) {
+					if (err) {
+						callback(err,null);
+						console.log(err,'response')
+					} else {
+						callback(err,to);
+					}
+				}); 
+				return to;
+			} catch (err) {
+				return false
+			}	
+	}else{
+		return false;
 	}
-    console.log(req.file);
-    console.log(file);
-    fs.rename(req.file.path, file, function(err) {
-        if (err) {
-            console.log(err);
-            res.send(500);
+	
+
+}
+const removeDir = function(path) {
+  if (fs.existsSync(path)) {
+    const files = fs.readdirSync(path)
+
+    if (files.length > 0) {
+      files.forEach(function(filename) {
+        if (fs.statSync(path + "/" + filename).isDirectory()) {
+          removeDir(path + "/" + filename)
         } else {
-            res.json({
-                message: 'File uploaded successfully',
-                filename: 'http://localhost:8080/'+file
-            });
+          fs.unlinkSync(path + "/" + filename)
         }
-    });
+      })
+      fs.rmdirSync(path)
+    } else {
+      fs.rmdirSync(path)
+    }
+  } else {
+    //console.log("Directory path not found.")
+  }
+}
+
+app.post('/uploadfilehere', [auth,multerMiddleware], function(req, res) {
+ 
+
+  // create root folder 
+	var uploads = 'uploads';
+	
+	if (!fs.existsSync(uploads)){
+		fs.mkdirSync(uploads);
+	}
+	
+	//create user folder
+
+	var newdir = 'uploads/'+req.body.folder;
+	
+	// remove existing
+	
+	removeDir(newdir)
+
+	
+	// upload file name `file`
+	var thiii = uploadfile(req.files,'file',newdir,function(err,response){
+		//console.log(response,'response') 
+	});
+	var thiii2 = uploadfile(req.files,'test',newdir,function(err,response){
+		//console.log(response,'response') 
+	});
+	var thiii3 = uploadfile(req.files,'other',newdir,function(err,response){
+		//console.log(response,'response') 
+	});
+	
+	thiii  == false? thiii  = false : thiii ='http://localhost:8080/'+thiii,
+	thiii2 == false? thiii2 = false : thiii2  ='http://localhost:8080/'+thiii2,
+	thiii3 == false? thiii3 = false : thiii3 ='http://localhost:8080/'+thiii3
+	
+	res.json({
+			message: 'File uploaded successfully',
+			thiii : thiii,
+			thiii2 : thiii2,
+			thiii3 : thiii3
+		});
+	
+	
 });
 
 app.use('/uploads',auth,express.static('uploads'));
